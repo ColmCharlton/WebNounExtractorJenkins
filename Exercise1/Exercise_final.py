@@ -1,7 +1,8 @@
-from urllib.request import urlopen
-from collections import Counter
-import re
 import os
+import re
+from collections import Counter
+from urllib.request import urlopen
+
 
 class Extractor:
 
@@ -98,7 +99,7 @@ class Extractor:
 
 
     #print item method
-    def print_items(self ,items):
+    def print_items(self,items):
         for word in items:
             print(word)
 
@@ -123,6 +124,7 @@ class Extractor:
 
             content = E.fetch_content('https://www.rte.ie/news/')
             # content = fetch_content('https://www.bbc.com/news')
+            # print(content)
 
             str1 = ' '.join(content)  # Joins strings otherwise error is produced
             # print(str1)
@@ -150,8 +152,8 @@ class Extractor:
             Al_num_Remove = E.remove_Non_Al_Num(remove_text_after)
             decimal_remove = E.remove_decimal(Al_num_Remove)
             whitespace = E.remove_whiteSpace(decimal_remove)
-
             final = whitespace  # the final output after all cleaning is done
+
 
             E.save(final, 'HTMLRemoved.txt')
 
@@ -218,16 +220,34 @@ class Key_Noun:
         for word in items:
             print(word)
 
+    #method to count instance of each word
+    def word_count(self, str):
+        counts = dict()
+        words = str.split()
+
+        for word in words:
+            if word in counts:
+                counts[word] += 1
+            else:
+                counts[word] = 1
+
+        return counts
+
+    # Remove duplicate members
+    def unique_list(self, list):
+        ulist = []
+        [ulist.append(x) for x in list if x not in ulist]
+        return ulist
+
+
+
     def run(self):
         try:
             K = Key_Noun()  # instatiate class
             inputText = K.openFile("HTMLRemoved.txt")  # Open and store the htmlRemoved content
             words1 = [x.lower() for x in inputText]  # Ensure all the text is in lower case
 
-            # Using an exclusion list, find only the action words in the page
-            Exclusion_list_Keywords = K.openFile("ExclusionList_Keywords.txt")
-            result_Action_Words = K.search_items(words1, Exclusion_list_Keywords)
-            # print(Counter(result_Action_Words))                                     #To count occurances of words for keyword analysis
+
 
             # Using an exclusion list, find only the nouns in the page
             Exclusion_list = K.openFile("ExclusionList.txt")
@@ -235,11 +255,43 @@ class Key_Noun:
             result_Nouns_Count = Counter(result_Nouns)
             # print(Counter(result_Nouns_Count))
             # print(result_Nouns)
-            K.save(result_Nouns, "Noun_List")
+            Nounstr1 = ' '.join(result_Nouns)
+            # print(K.word_count(str1))
+
+            CountNouns = K.word_count(Nounstr1)    #Counts the number of instances of a word
+            # print(sorted([(value, key) for (key, value) in CountNouns.items()], reverse=True))   #Sorts the list and prints
+            CountNounsSort = sorted([(value, key) for (key, value) in CountNouns.items()], reverse=True)
+            print("\nNouns list sorted \n", CountNounsSort)
+
+            # print(str1) #Prints the joined list
+            Nounfinal = ' '.join(K.unique_list(Nounstr1.split()))   #Method to remove duplicte words
+            print("\nNouns list \n",Nounfinal)
+            K.save(Nounfinal, "Noun_List")
+
+
+
+
+            # Using an exclusion list, find only the action words in the page
+            Exclusion_list_Keywords = K.openFile("ExclusionList_Keywords.txt")
+            result_Action_Words = K.search_items(words1, Exclusion_list_Keywords)
+            # print(Counter(result_Action_Words))  # To count occurances of words for keyword analysis
 
             # Using results from nouns as an exclusion list, to find only the action words in the page
-            result_Action_Words_Final = K.search_items(result_Action_Words, result_Nouns)
+            result_Action_Words_Final = K.search_items(result_Action_Words, Nounfinal)
             # print(Counter(result_Action_Words_Final))
+
+            Verbstr1 = ' '.join(result_Action_Words_Final)
+            CountVerbs = K.word_count(Verbstr1)    #Counts the number of instances of a word
+            # print(sorted([(value, key) for (key, value) in CountVerbs.items()], reverse=True))   #Sorts the list and prints
+            CountVerbSort = sorted([(value, key) for (key, value) in CountVerbs.items()], reverse=True)  # Sorts the list and prints
+
+            print("\nKey list sorted \n", CountVerbSort)
+
+            Keystrl = ' '.join(result_Action_Words_Final)
+            KeyFinal = ' '.join(K.unique_list(Keystrl.split()))  # Method to remove duplicte words
+
+            print("\nKey list \n", KeyFinal)
+            K.save(KeyFinal, "Verb_List")
 
 
         except Exception as e:
@@ -255,13 +307,13 @@ class retrieve_sort_compare:
     mypath = 'C:\\pyfund\\Exercise1'
 
     # Lists files in this directory and searches for specific files
-    def retrieve_sort(self):
+    def retrieve_sort(self, filename):
 
         try:
             files = os.listdir(retrieve_sort_compare.mypath)
             mylist = []
             for file in files:
-                if file.lstrip().startswith('Noun'):  # Search for only the keywrd Noun
+                if file.lstrip().startswith(filename):  # Search for only the keywrd Noun
                     mylist.append(file)
                 mylist.sort(reverse=True)
             # print(mylist)
@@ -280,7 +332,7 @@ class retrieve_sort_compare:
 
 
     #This method takes in two files an compares them, if there is no change then it returns same
-    def compare(self, file1, file2):
+    def compare(self, file1, file2, str):
         try:
             with open(file1, "r") as f1:
                 f1_text = f1.read()
@@ -298,11 +350,16 @@ class retrieve_sort_compare:
             compare_result = A.difference(B)
 
             if len(compare_result) == 0:
-                print("No change")
+                print("\n No change")
             else:
-                print(compare_result)
-                # compare_result_Count = [Counter(compare_result)]
-                # print(Counter(compare_result_Count))
+                # print(compare_result)
+                print("The " + str + " that have changed are: \n")
+                str1 = ' '.join(compare_result)  # Joins strings otherwise error is produced
+                print(str1)
+                # str2 = ''.join(str1)  # Joins strings otherwise error is produced
+                # compare_result_Count = Counter({str1})
+                # print(str2)
+                # print(compare_result_Count)
 
             return
 
@@ -316,16 +373,24 @@ class retrieve_sort_compare:
     #This method is used to run the class
     def run(self):
         try:
-            CC = retrieve_sort_compare()
-            CC.retrieve_sort()
+            CN = retrieve_sort_compare()    #Create instance of object
+            # CC.retrieve_sort('Noun') #Searches for files with the key word 'Noun'
             # print(CC.retrieve_sort())
 
             # List of the last two elements has been returned
-            list = CC.retrieve_sort()
+            list = CN.retrieve_sort('Noun')
             # print(list)
             # Passing releveant files to check content
-            CC.compare(list[0], list[1])
-            # CC.compare('Noun_List.txt', 'Noun_List20190619-153127.txt')
+            CN.compare(list[0], list[1], 'Noun')
+            # CC.compare('Noun_List.txt', 'Noun_List20190620-131122.txt')
+
+
+            CV = retrieve_sort_compare()
+            list = CV.retrieve_sort('Verb')
+            # Passing releveant files to check content
+            CV.compare(list[0], list[1], 'Verb' )
+
+
 
 
         except Exception as e:
