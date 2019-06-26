@@ -1,3 +1,0 @@
-Exercise1/
-Noun*.txt
-Verb*.txt
